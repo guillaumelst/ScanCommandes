@@ -5,10 +5,16 @@ import fitz  # PyMuPDF
 from PyPDF2 import PdfReader
 
 # --------------------------------------------------------------------------------
-# 1. Répertoires en jeu
+# 1. Répertoires en jeu (déterminés automatiquement depuis l’emplacement du script)
 # --------------------------------------------------------------------------------
-input_dir = r"C:\Users\GLT\eiffage.com\OneDrive - eiffageenergie.be\Documents\Guillaume\Programmation\Commandes\01_Commandes"
-output_dir = r"C:\Users\GLT\eiffage.com\OneDrive - eiffageenergie.be\Documents\Guillaume\Programmation\Commandes\dessin"
+# base_dir : dossier où se trouve ce script .py
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
+# input_dir : sous-dossier "01_Commandes" du même dossier que le script
+input_dir = os.path.join(base_dir, "01_Commandes")
+
+# output_dir : sous-dossier "dessin" du même dossier que le script
+output_dir = os.path.join(base_dir, "dessin")
 
 # Création du dossier de sortie s’il n’existe pas
 os.makedirs(output_dir, exist_ok=True)
@@ -87,6 +93,10 @@ def parse_fields_from_text(text: str):
 # --------------------------------------------------------------------------------
 # 6. Boucle sur tous les PDF : parsing, renommage, extraction bbox & annotation
 # --------------------------------------------------------------------------------
+if not os.path.isdir(input_dir):
+    print(f"⚠️ Le dossier d’entrée n’existe pas : {input_dir}")
+    exit(1)
+
 for nom_fichier in os.listdir(input_dir):
     if not nom_fichier.lower().endswith(".pdf"):
         continue
@@ -113,7 +123,7 @@ for nom_fichier in os.listdir(input_dir):
         print(f"   • commande   = {commande}")
         print(f"   • date       = {date_commande}")
         print(f"   • fournisseur= {fournisseur}")
-        print("⏩ On conserve le nom d'origine pour ce fichier.")
+        print("⏩ On conserve le nom d'origine.")
         nouveau_nom = nom_fichier  # pas de renommage
     else:
         cmd_clean = sanitize_for_filename(commande)
@@ -144,7 +154,7 @@ for nom_fichier in os.listdir(input_dir):
     # 6.5. Dessiner le rectangle sur la page (annotation)
     page.draw_rect(zone, color=(1, 0, 0), width=1)
 
-    # 6.6. Enregistrer la copie annotée dans 'dessin' avec le nom final
+    # 6.6. Enregistrer la copie annotée dans le dossier "dessin" (output_dir) avec le nom final
     sortie_annot = os.path.join(output_dir, nouveau_nom)
     doc.save(sortie_annot)
     doc.close()
