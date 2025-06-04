@@ -2,16 +2,16 @@
 
 Ce projet fournit un script Python 🐍 permettant d’automatiser le traitement de fichiers PDF dans un dossier donné. Il réalise les opérations suivantes :
 
-- 📄 Parcourt tous les fichiers `.pdf` d’un dossier d’entrée.
+- 📄 Parcourt tous les fichiers `.pdf` dans le sous-dossier `01_Commandes` (au même emplacement que le script).
 - 🔍 Extrait le texte intégral pour récupérer :
   1. **N° commande** (après « N° commande »)
   2. **Date de commande** (après « Date de commande »)
 - 📐 Lit une zone définie (bbox) sur la première page pour y extraire le nom du **fournisseur**.
 - ✏️ Renomme chaque PDF sous la forme `<commande>_<date>_<fournisseur>.pdf` si tous les champs sont trouvés.
-- 🖍️ Annoter la même zone en traçant un rectangle rouge sur la première page.
-- 📂 Enregistre la version annotée dans un dossier de sortie.
+- 🖍️ Trace un rectangle rouge sur la même zone dans la première page (annotation visuelle).
+- 📂 Enregistre la version annotée dans le sous-dossier `dessin`.
 
-Si l’un des champs (commande, date ou fournisseur) est introuvable, le PDF garde son nom d’origine et le script signale les champs manquants.  
+Si l’un des champs (commande, date ou fournisseur) est introuvable, le PDF garde son nom d’origine et le script signale les champs manquants.
 
 ---
 
@@ -31,14 +31,14 @@ Si l’un des champs (commande, date ou fournisseur) est introuvable, le PDF gar
 - **Python 3.7+** 🐍  
 - Modules Python :  
   - `PyPDF2` (pour extraire le texte brut des PDF)  
-  - `PyMuPDF` (alias `fitz`, pour manipuler le PDF—extraction de texte dans une zone et annotation)  
+  - `PyMuPDF` (alias `fitz`, pour manipuler le PDF — extraction de texte dans une zone et annotation)  
 
 Installez-les via :  
 ```bash
 pip install PyPDF2 PyMuPDF
 ```  
 
-> **Note** : Le script a été testé sous Windows. Les chemins d’accès (`input_dir`, `output_dir`) pointent vers un dossier OneDrive, mais vous pouvez les adapter à votre environnement (Linux/macOS).
+> **Note** : Le script a été testé sous Windows, mais fonctionne aussi sur Linux/macOS.  
 
 ---
 
@@ -59,14 +59,10 @@ pip install PyPDF2 PyMuPDF
    > pip install PyPDF2 PyMuPDF
    > ```  
 
-3. **Modifier les chemins**  
-   - Ouvrez `process_pdfs.py` (ou le nom du script principal)  
-   - Ajustez les variables :  
-     ```python
-     input_dir = r"<chemin_vers_votre_dossier_d_entree>"
-     output_dir = r"<chemin_vers_votre_dossier_de_sortie>"
-     ```  
-   - Vérifiez que le dossier de sortie (`output_dir`) existe ou sera créé automatiquement par le script.
+3. **Préparer les dossiers**  
+   - Dans le même dossier que le script `process_pdfs.py`, créez impérativement :
+     - Un sous-dossier `01_Commandes` pour y déposer vos fichiers PDF à traiter.
+     - Le sous-dossier `dessin` sera créé automatiquement si nécessaire ; vous n’avez rien à configurer.
 
 ---
 
@@ -75,8 +71,9 @@ pip install PyPDF2 PyMuPDF
 ```text
 ./
 ├── process_pdfs.py      # Script principal pour traiter et annoter les PDF
-├── requirements.txt     # Liste des dépendances Python
 ├── README.md            # Ce fichier
+├── requirements.txt     # Liste des dépendances Python
+├── 01_Commandes/        # Dossier à créer pour y mettre vos PDF d’entrée
 └── dessin/              # (généré automatiquement) Contiendra les PDF annotés
 ```
 
@@ -85,7 +82,7 @@ pip install PyPDF2 PyMuPDF
 ## ▶️ Utilisation
 
 1. **Ajouter vos PDF**  
-   Placez tous les fichiers `.pdf` à traiter dans le dossier spécifié par `input_dir`.
+   Placez tous les fichiers `.pdf` à traiter dans le dossier `01_Commandes`.
 
 2. **Lancer le script**  
    ```bash
@@ -100,7 +97,7 @@ pip install PyPDF2 PyMuPDF
      - La confirmation de l’annotation et de l’enregistrement dans le dossier `dessin/`.  
 
 4. **Vérifier le dossier de sortie**  
-   Tous les PDF annotés (avec un rectangle rouge sur la première page) seront copiés dans `output_dir` avec leur nom final.
+   Tous les PDF annotés (avec un rectangle rouge sur la première page) seront copiés dans `dessin` avec leur nom final.
 
 ---
 
@@ -108,15 +105,16 @@ pip install PyPDF2 PyMuPDF
 
 Le fichier **`process_pdfs.py`** est structuré en 6 grandes étapes :
 
-1. **Définition des répertoires**  
+1. **Détection automatique des répertoires**  
    ```python
-   input_dir = r"C:\Path\To\Input"
-   output_dir = r"C:\Path\To\Output"
+   base_dir = os.path.dirname(os.path.abspath(__file__))
+   input_dir = os.path.join(base_dir, "01_Commandes")
+   output_dir = os.path.join(base_dir, "dessin")
    os.makedirs(output_dir, exist_ok=True)
    ```  
-   - `input_dir` : dossier contenant les PDF à traiter.  
-   - `output_dir` : dossier où seront enregistrés les PDF annotés.  
-   - Si `output_dir` n’existe pas, il est créé automatiquement.
+   - `base_dir` : chemin où se situe le script.  
+   - `input_dir` : sous-dossier `01_Commandes`.  
+   - `output_dir` : sous-dossier `dessin`, créé automatiquement si nécessaire.
 
 2. **Coordonnées de la zone (bbox) pour PyMuPDF**  
    ```python
@@ -126,7 +124,7 @@ Le fichier **`process_pdfs.py`** est structuré en 6 grandes étapes :
    zone = fitz.Rect(x0, y0, x1, y1)
    ```  
    - Origine `(0,0)` = coin haut-gauche de la page en points.  
-   - On définit un rectangle (`zone`) où se trouve le nom du fournisseur sur la première page.
+   - Définition d’un rectangle (`zone`) où se trouve le nom du fournisseur sur la première page.
 
 3. **Fonction `sanitize_for_filename`**  
    ```python
@@ -138,8 +136,8 @@ Le fichier **`process_pdfs.py`** est structuré en 6 grandes étapes :
        return s_clean
    ```  
    - Nettoie une chaîne pour en faire un nom de fichier valide :  
-     - Supprime les accents  
-     - Élimine les caractères spéciaux (ne garde que lettres, chiffres, espaces, `_.-`)  
+     - Supprime les accents.  
+     - Élimine les caractères spéciaux (ne garde que lettres, chiffres, espaces, `_.-`).  
      - Remplace les espaces par des underscores `_`.
 
 4. **Extraction du texte complet d’un PDF**  
@@ -186,16 +184,21 @@ Le fichier **`process_pdfs.py`** est structuré en 6 grandes étapes :
    ```  
    - Grâce à deux expressions régulières, on capture :  
      1. Le **numéro de commande** (suite de lettres/chiffres/points/tirets) après « N° commande ».  
-     2. La **date de commande** au format `JJ-MM-AAAA` ou `JJ/MM/AA`.  
+     2. La **date de commande** au format `JJ-MM-AAAA` ou `JJ/MM/AA`.
 
 6. **Boucle principale sur tous les PDF**  
    ```python
+   if not os.path.isdir(input_dir):
+       print(f"⚠️ Le dossier d’entrée n’existe pas : {input_dir}")
+       exit(1)
+
    for nom_fichier in os.listdir(input_dir):
        if not nom_fichier.lower().endswith(".pdf"):
            continue
 
        ancien_chemin = os.path.join(input_dir, nom_fichier)
        current_path = ancien_chemin
+
        print(f"\n=== Traitement de : {nom_fichier} ===")
 
        # 6.1. Extraction du texte brut
@@ -225,7 +228,7 @@ Le fichier **`process_pdfs.py`** est structuré en 6 grandes étapes :
            nouveau_chemin = os.path.join(input_dir, nouveau_nom)
 
            if os.path.exists(nouveau_chemin):
-               print(f"⚠️ '{nouveau_nom}' existe déjà, pas de renommage.")
+               print(f"⚠️ Le fichier '{nouveau_nom}' existe déjà, pas de renommage.")
                nouveau_nom = nom_fichier
            else:
                os.rename(ancien_chemin, nouveau_chemin)
@@ -246,7 +249,7 @@ Le fichier **`process_pdfs.py`** est structuré en 6 grandes étapes :
        # 6.5. Annotation (rectangle rouge)
        page.draw_rect(zone, color=(1, 0, 0), width=1)
 
-       # 6.6. Sauvegarde dans le dossier de sortie
+       # 6.6. Sauvegarde dans le dossier "dessin"
        sortie_annot = os.path.join(output_dir, nouveau_nom)
        doc.save(sortie_annot)
        doc.close()
@@ -254,4 +257,23 @@ Le fichier **`process_pdfs.py`** est structuré en 6 grandes étapes :
        print(f"🔖 Annoté et enregistré dans : {sortie_annot}")
 
    print("\nTraitement complet terminé. Les PDF annotés sont dans le dossier 'dessin'.")
-   
+   ```
+
+---
+
+## 📄 Licence
+
+Ce projet est distribé sous licence **MIT**.
+
+La licence MIT est une licence libre et permissive. Elle permet :
+
+- ✔️ d’utiliser, copier, modifier et distribuer le logiciel, à des fins privées, éducatives ou commerciales, sans restriction.  
+- ✔️ d’intégrer le logiciel dans des projets propriétaires.  
+
+Seule condition : inclure la notice de copyright et la licence MIT dans toutes les copies ou distributions du logiciel.
+
+Pour plus de détails, consultez le fichier [LICENSE](LICENSE).  
+
+---
+
+> **Bon traitement de vos PDF !** 🚀
